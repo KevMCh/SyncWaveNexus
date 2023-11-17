@@ -7,7 +7,7 @@ close all
 %% General
 gDataset = EEGDataset();
 
-relatPath = 'data';
+relatPath = 'Data';
 
 % 768 0x0300 Start of a trial
 % 769 0x0301 Cue onset left (class 1)
@@ -24,5 +24,11 @@ numUsers = 9;
     % info.user = i;
     info.user = 1;
     gDataset = gDataset.processFile(relatPath, info);
+
+    %% Graph
+    graphDS = PLVGraphDataset();
+    graphDS = graphDS.calculateGraphs([12, 30], gDataset);
+    
+    graphDS.plotAvgAdj(0.7)
 % end
 
