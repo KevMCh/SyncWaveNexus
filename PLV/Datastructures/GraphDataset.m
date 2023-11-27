@@ -1,5 +1,7 @@
 classdef (Abstract) GraphDataset < Dataset
     properties(Constant)
+        SAMPLE_FREQ = 250
+
         CHANNELS = { 'EEGFz', 'EEG', 'EEG1', 'EEG2', 'EEG3', 'EEG4', ...
             'EEG5', 'EEGC3', 'EEG6', 'EEGCz', 'EEG7', 'EEGC4',  'EEG8', ...
             'EEG9', 'EEG10', 'EEG11',  'EEG12', 'EEG13', 'EEG14', ...
@@ -32,18 +34,24 @@ classdef (Abstract) GraphDataset < Dataset
             data = dataset.getData();
             labels = dataset.getLabels();
 
+            timeSteps = fix(length(data{1, 1}) / obj.SAMPLE_FREQ);
+
             for i = 1 : length(data)
-                signals = data{i, 1};
-                [nSamples, channels] = size(signals);
 
-                filt = fir1(ceil(nSamples / 5), ...
-                        bpValues / 250, 'bandpass', ...
-                        hamming(ceil(nSamples / 5) + 1), 'scale');
+                for j = 1 : timeSteps
+                    signals = data{i, 1}(j:j+obj.SAMPLE_FREQ, :);
+                    [nSamples, channels] = size(signals);
+    
+                    filt = fir1(ceil(nSamples / 5), ...
+                            bpValues / obj.SAMPLE_FREQ, 'bandpass', ...
+                            hamming(ceil(nSamples / 5) + 1), 'scale');
+    
+                    signals = fastfc_filt(filt, signals, 1);
+                    
+                    matrix = obj.obtainSynch(signals);
+                    signalGraph{j} = graph(matrix, obj.CHANNELS, 'upper');
+                end
 
-                signals = fastfc_filt(filt, signals, 1);
-                
-                matrix = obj.obtainSynch(signals);
-                signalGraph = graph(matrix, obj.CHANNELS, 'upper');
                 obj = obj.addData(signalGraph, labels{i, 1});
             end
         end

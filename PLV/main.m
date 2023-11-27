@@ -44,11 +44,20 @@ for i = 1 : numUsers
     nLabels = length(unique(cell2mat(freqGraphs{j}.getLabels())));
     
     for i = 1 : nTrials
-        matL = tril(full(adjacency(freqGraphs{1}.getItem(i), 'weighted')));
-        matU = triu(full(adjacency(freqGraphs{2}.getItem(i), 'weighted')));
-    
-        fullMatrix = matU + matL;
-        fullMatrix = fullMatrix - diag(diag(fullMatrix));
+        fullMatrix = [];
+
+        for j = 1 : length(freqGraphs{1}.getItem(i))
+            item_graphs = freqGraphs{1}.getItem(i);
+            matL = tril(full(adjacency(item_graphs{j}, 'weighted')));
+
+            item_graphs = freqGraphs{2}.getItem(i);
+            matU = triu(full(adjacency(item_graphs{j}, 'weighted')));
+        
+            tmpMatrix = matU + matL;
+            tmpMatrix = tmpMatrix - diag(diag(tmpMatrix));
+
+            fullMatrix = cat(3, fullMatrix, tmpMatrix);
+        end
     
         if(mod(i, (nTrials / nLabels)) == 0)
             itemNumber = nTrials / nLabels;
@@ -56,7 +65,7 @@ for i = 1 : numUsers
             itemNumber =  mod(i, (nTrials / nLabels));
         end
         
-        save(['./Data/Graph/graph_user' int2str(info.user) ...
+        save(['./Data/Graph/tmp_graph_user' int2str(info.user) ...
             '_label' int2str(freqGraphs{1}.getLabel(i)) ...
             '_item' int2str(itemNumber)], 'fullMatrix');
     end
