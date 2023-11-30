@@ -6,16 +6,26 @@ classdef PLVGraphDataset < GraphDataset
         function filGraphDS = filterGraphs(obj, thr)
             filGraphDS = PLVGraphDataset();
             for i = 1 : length(obj.Data)
-                filGraphDS = filGraphDS.addData( ...
-                    PLVGraphDataset.thrFilter(thr, obj.Data{i}), obj.Labels{i});
+
+                graphs = {};
+                for j = 1 : length(obj.Data{i})
+                    graphs{j} = PLVGraphDataset.thrFilter(thr, obj.Data{i}{j});
+                end
+
+                filGraphDS = filGraphDS.addData(graphs, obj.Labels{i});
             end
         end
 
         function obj = normalizeGraphs(obj)
             for i = 1 : length(obj.Data)
-                obj.Data{i} = graph( ...
-                        obj.normalizeMatrix(full(adjacency(obj.Data{i}, 'weighted'))), ...
-                    obj.Data{i}.Nodes.Name, 'upper');
+                graphs = {};
+                for j = length(obj.Data{i})
+                    graphs{j} = graph( ...
+                        obj.normalizeMatrix(full(adjacency(obj.Data{i}{j}, 'weighted'))), ...
+                    obj.Data{i}{j}.Nodes.Name, 'upper');
+                end
+
+                obj.Data{i} = graphs;
             end
         end
     end

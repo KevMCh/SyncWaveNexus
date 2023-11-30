@@ -30,11 +30,9 @@ classdef (Abstract) GraphDataset < Dataset
         function obj = GraphDataset()
         end
 
-        function obj = calculateGraphs(obj, bpValues, dataset)
+        function obj = calculateGraphs(obj, bpValues, dataset, timeSteps)
             data = dataset.getData();
             labels = dataset.getLabels();
-
-            timeSteps = fix(length(data{1, 1}) / obj.SAMPLE_FREQ);
 
             for i = 1 : length(data)
 
@@ -87,7 +85,7 @@ classdef (Abstract) GraphDataset < Dataset
                 nexttile
                 h = heatmap(tril(mtx{i}), ...
                     'MissingDataColor', 'w', 'ColorLimits',[0 1]);
-                labels = obj.Data{1}.Nodes.Name;
+                labels = obj.Data{1}{1}.Nodes.Name;
                 h.XDisplayLabels = labels;
                 h.YDisplayLabels = labels;
 
@@ -117,7 +115,13 @@ classdef (Abstract) GraphDataset < Dataset
 
             for j = 1 : length(idx)
                 graphO = obj.Data(idx(j));
-                avgAdjMatrix(:, :, j) = full(adjacency(graphO{1}, 'weighted'));
+                
+                tmpGraph = zeros(length(obj.CHANNELS));
+                for k = 1 : length(graphO{1})
+                    tmpGraph = tmpGraph + full(adjacency(graphO{1}{k}, 'weighted'));
+                end
+
+                avgAdjMatrix(:, :, j) = tmpGraph / length(graphO{1});
             end
 
             avgAdjMatrix = mean(avgAdjMatrix, 3);
