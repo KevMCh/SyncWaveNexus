@@ -19,7 +19,9 @@ info.type = 'T';
 numUsers = 9;
 
 freqRanges = [8, 12, 30];
-timeSteps = 1;
+
+
+% sampleSteps = 750;
 
 for i = 1 : numUsers
     info.user = i;
@@ -31,13 +33,16 @@ for i = 1 : numUsers
     for j = 1 : length(freqRanges) - 1
 
         %% Graph
-        graphDS = PLVGraphDataset();
+        graphDS = FastPLVGraphDataset();
+        % graphDS = graphDS.calculateGraphsBySteps( ...
+        %     [freqRanges(j), freqRanges(j + 1)], gDataset, sampleSteps, true)
+
         graphDS = graphDS.calculateGraphs( ...
-            [freqRanges(j), freqRanges(j + 1)], gDataset, timeSteps);
+            [freqRanges(j), freqRanges(j + 1)], gDataset);
         
-        % graphDS = graphDS.filterGraphs(0.85);
-        % graphDS = graphDS.normalizeGraphs();
-        % graphDS.plotAvgAdj(0);
+        graphDS = graphDS.filterGraphs(0.5);
+        graphDS = graphDS.normalizeGraphs();
+        % graphDS.plotAvgAdj(0.7);
 
         freqGraphs{j} = graphDS;
     end
@@ -45,7 +50,7 @@ for i = 1 : numUsers
     %% Save files
     nTrials = length(freqGraphs{1}.getData());
     nLabels = length(unique(cell2mat(freqGraphs{1}.getLabels())));
-    
+
     for j = 1 : nTrials
         fullMatrix = [];
 
@@ -55,22 +60,26 @@ for i = 1 : numUsers
 
             item_graphs = freqGraphs{2}.getItem(j);
             matU = triu(full(adjacency(item_graphs{k}, 'weighted')));
-        
+
             tmpMatrix = matU + matL;
             tmpMatrix = tmpMatrix - diag(diag(tmpMatrix));
 
             fullMatrix = cat(3, fullMatrix, tmpMatrix);
         end
-    
+
         if(mod(j, (nTrials / nLabels)) == 0)
             itemNumber = nTrials / nLabels;
         else
             itemNumber =  mod(j, (nTrials / nLabels));
         end
-        
-        % save(['./Data/Graph/graph_user' int2str(info.user) ...
-        %     '_label' int2str(freqGraphs{1}.getLabel(j)) ...
-        %     '_item' int2str(itemNumber) '_sensors5'], 'fullMatrix');
+
+        name = ['graph_user' int2str(info.user) ...
+            '_label' int2str(freqGraphs{1}.getLabel(j)) ...
+            '_item' int2str(itemNumber) '_thr05_norm_filter'];
+
+        save(['./Data/Graph/' name], 'fullMatrix');
+
+        disp(["Save: " name])
     end
 end
 

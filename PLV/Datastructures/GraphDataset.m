@@ -30,27 +30,62 @@ classdef (Abstract) GraphDataset < Dataset
         function obj = GraphDataset()
         end
 
-        function obj = calculateGraphs(obj, bpValues, dataset, timeSteps)
+        function obj = calculateGraphs(obj, bpValues, dataset)
             data = dataset.getData();
             labels = dataset.getLabels();
 
             for i = 1 : length(data)
+                
+                signals = data{i, 1}(:, :);
+                [nSamples, ~] = size(signals);
+    
+                filt = fir1(ceil(nSamples / 5), ...
+                    bpValues / obj.SAMPLE_FREQ, 'bandpass', ...
+                    hamming(ceil(nSamples / 5) + 1), 'scale');
 
-                for j = 1 : timeSteps
-                    signals = data{i, 1}(j:j+obj.SAMPLE_FREQ, :);
-                    [nSamples, channels] = size(signals);
+                signals = fastfc_filt(filt, signals, 1);
+
+                matrix = obj.obtainSynch(signals);
+                matrixGraph = graph(matrix, obj.CHANNELS, 'upper');
+                
+                obj = obj.addData({matrixGraph}, labels{i, 1});                
+            end
+        end
+
+        function obj = calculateGraphsBySteps(obj, bpValues, dataset, sampleSteps, split)
+            data = dataset.getData();
+            labels = dataset.getLabels();
+
+            for i = 1 : length(data)
+                
+                if ~(split)
+                    signalGraph = {};
+                end
+
+                for j = 1 : sampleSteps : (length(data{i, 1}(:, :)) - sampleSteps)
+                    signals = data{i, 1}(j : j + sampleSteps, :);
+                    [nSamples, ~] = size(signals);
     
                     filt = fir1(ceil(nSamples / 5), ...
-                            bpValues / obj.SAMPLE_FREQ, 'bandpass', ...
-                            hamming(ceil(nSamples / 5) + 1), 'scale');
-    
+                        bpValues / obj.SAMPLE_FREQ, 'bandpass', ...
+                        hamming(ceil(nSamples / 5) + 1), 'scale');
+                    
                     signals = fastfc_filt(filt, signals, 1);
                     
                     matrix = obj.obtainSynch(signals);
-                    signalGraph{j} = graph(matrix, obj.CHANNELS, 'upper');
-                end
+                    matrixGraph = graph(matrix, obj.CHANNELS, 'upper');
 
-                obj = obj.addData(signalGraph, labels{i, 1});
+                    if(split)
+                        obj = obj.addData({matrixGraph}, labels{i, 1});
+                    else
+                        signalGraph{end + 1} = matrixGraph;
+                    end
+                end
+                
+                if ~(split)
+                    obj = obj.addData(signalGraph, labels{i, 1});
+                end
+                
             end
         end
 
@@ -95,10 +130,10 @@ classdef (Abstract) GraphDataset < Dataset
             for i = 1 : length(classes)
                 mtx{i}(logical(eye(size(mtx{i})))) = 0;
                 mtx{i} = graph(mtx{i}, obj.CHANNELS, 'upper');
-                
+
                 nexttile
                 lWidths = 5 * abs(mtx{i}.Edges.Weight) / max(mtx{i}.Edges.Weight);
-                
+
                 p = plot(mtx{i}, 'LineWidth', lWidths, 'XData', obj.xPos, 'YData', obj.yPos);
 
                 p.Marker = 's';
